@@ -1,0 +1,24 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+
+train_data = pd.read_csv(rf"C:\Users\Asus\Desktop\train_data.csv")
+from wordcloud import WordCloud
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+import nltk
+
+nltk.download("stopwords")
+nltk.download("punkt")
+
+
+
+def preprocess_text(text):
+    text = ''.join([char.lower() for char in text if char.isalpha() or char == ' '])
+    tokens = word_tokenize(text)
+    stop_words = set(stopwords.words("english")) 
+    filtered_tokens = [word for word in tokens if word not in stop_words]
+    return " ".join(filtered_tokens)
+
+train_data["preprocess_text"] = train_data["reviewText"].apply(lambda x :preprocess_text(x))
