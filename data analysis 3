@@ -1,0 +1,32 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+
+train_data = pd.read_csv(rf"C:\Users\Asus\Desktop\train_data.csv")
+
+train_data = pd.DataFrame(train_data)
+
+group_ = train_data.groupby("reviewerName")["overall"].sum().sort_values(ascending=False)[2:12]
+
+group_ = group_.reset_index(name='count')
+print(group_)
+
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10, 6))
+
+scatter = plt.scatter(x=group_['reviewerName'],
+                      y=group_['count'],
+                      s=group_['count'],
+                      alpha=0.7)
+plt.xlabel('Reviewer Name', fontsize=12)
+plt.ylabel('Vote', fontsize=12)
+plt.grid(True)
+
+plt.bar(x=group_['reviewerName'],
+        height=group_['count'],
+        color='darkcyan')
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
