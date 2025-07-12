@@ -1,0 +1,90 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from datasets import Dataset, load_from_disk
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    Trainer,
+    TrainingArguments
+)
+from sklearn.metrics import accuracy_score, f1_score
+import torch
+import os
+
+# ---------- 1. Load and prepare data ----------
+df = pd.read_csv(r"C:\Users\Asus\Desktop\train_data.csv")
+df = df[['reviewText', 'overall']].dropna()
+df['overall'] = df['overall'].astype(int) - 1  # labels: 0 to 4
+
+train_df, test_df = train_test_split(df, test_size=0.2, stratify=df['overall'], random_state=42)
+
+train_dataset = Dataset.from_pandas(train_df.reset_index(drop=True))
+test_dataset = Dataset.from_pandas(test_df.reset_index(drop=True))
+
+# ---------- 2. Tokenization ----------
+model_name = "distilroberta-base"  # سریع‌تر از roberta-base
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+def tokenize(batch):
+    return tokenizer(batch["reviewText"], padding="max_length", truncation=True, max_length=128)
+
+# Apply tokenization with multiprocessing
+train_dataset = train_dataset.map(tokenize, batched=True, num_proc=os.cpu_count())
+test_dataset = test_dataset.map(tokenize, batched=True, num_proc=os.cpu_count())
+
+train_dataset = train_dataset.rename_column("overall", "labels")
+test_dataset = test_dataset.rename_column("overall", "labels")
+
+train_dataset.set_format("torch", columns=["input_ids", "attention_mask", "labels"])
+test_dataset.set_format("torch", columns=["input_ids", "attention_mask", "labels"])
+
+# Optional: Save tokenized datasets for reuse
+train_dataset.save_to_disk("cached_train_dataset")
+test_dataset.save_to_disk("cached_test_dataset")
+
+# ---------- 3. Load model ----------
+model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=5)
+
+# ---------- 4. TrainingArguments ----------
+training_args = TrainingArguments(
+    output_dir="./results",
+    eval_strategy="epoch",
+    save_strategy="epoch",
+    num_train_epochs=2,  # برای تست سریع
+    per_device_train_batch_size=16,
+    per_device_eval_batch_size=32,
+    learning_rate=3e-5,
+    warmup_steps=500,
+    weight_decay=0.01,
+    logging_dir="./logs",
+    logging_strategy="epoch",
+    load_best_model_at_end=True,
+    metric_for_best_model="accuracy",
+    fp16=torch.cuda.is_available(),  # فعال فقط در صورت وجود GPU
+)
+
+# ---------- 5. Metrics ----------
+def compute_metrics(p):
+    preds = p.predictions.argmax(-1)
+    labels = p.label_ids
+    return {
+        "accuracy": accuracy_score(labels, preds),
+        "f1": f1_score(labels, preds, average="weighted"),
+    }
+
+# ---------- 6. Trainer ----------
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,
+    eval_dataset=test_dataset,
+    tokenizer=tokenizer,
+    compute_metrics=compute_metrics
+)
+
+# ---------- 7. Train ----------
+trainer.train()
+
+# ---------- 8. Save final model ----------
+trainer.save_model("./distilroberta-review-rating")
+tokenizer.save_pretrained("./distilroberta-review-rating")
