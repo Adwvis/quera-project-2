@@ -1,0 +1,32 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+
+train_data = pd.read_csv(rf"C:\Users\Asus\Desktop\train_data.csv")  
+
+train_data = pd.DataFrame(train_data)
+train_data = train_data[train_data["overall"] == 5]
+
+top_product = train_data.groupby("asin")["overall"].sum().sort_values(ascending=False)[:10]
+top_product = top_product.reset_index(name='count')
+brand_title = pd.read_csv(rf"C:\Users\Asus\Desktop\title_brand.csv")
+merge_df = pd.merge(top_product, brand_title, left_on='asin', right_on='asin', how='left')
+
+
+merge_df['product + brand'] = merge_df["title"] + merge_df["brand"]
+df = merge_df[['product + brand', 'count']]
+
+plt.bar(x=merge_df['title'],
+        height=merge_df['count'],
+        color='darkcyan')
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+
+plt.bar(x=merge_df['brand'],
+        height=merge_df['count'],
+        color='darkcyan')
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
