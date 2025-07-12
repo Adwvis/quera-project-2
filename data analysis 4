@@ -1,0 +1,32 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+
+train_data = pd.read_csv(rf"C:\Users\Asus\Desktop\train_data.csv")
+train_data['len_reviewText'] = train_data['reviewText'].apply(lambda x: len(x))
+print(train_data)
+
+plt.figure(figsize=(10, 5))
+plt.hist(train_data["len_reviewText"], bins=500, color="skyblue", edgecolor="black")
+plt.title("Histogram of Review Text Lengths (Original)")
+plt.xlabel("Number of Characters")
+plt.ylabel("Frequency")
+plt.grid(True)
+plt.show()
+
+
+q1 = train_data["len_reviewText"].quantile(0.05)
+q3 = train_data["len_reviewText"].quantile(0.95)
+
+
+filtered_data = train_data[(train_data["len_reviewText"] >= q1) & (train_data["len_reviewText"] <= q3)]
+
+
+plt.figure(figsize=(10, 5))
+plt.hist(filtered_data["len_reviewText"], bins=40, color="lightgreen", edgecolor="black")
+plt.title("Histogram of Review Text Lengths (Filtered)")
+plt.xlabel("Number of Characters")
+plt.ylabel("Frequency")
+plt.grid(True)
+plt.show()
