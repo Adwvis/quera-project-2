@@ -1,0 +1,21 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+
+train_data = pd.read_csv(rf"C:\Users\Asus\Desktop\train_data.csv")
+
+
+
+
+# import seaborn as sns
+
+train_data['overall'].value_counts().sort_index().plot(kind='bar')
+plt.title('Overall')
+plt.xlabel('vote')
+plt.ylabel('count')
+plt.show()
+
+# Class Weighting
+# Random Undersampling 
+
