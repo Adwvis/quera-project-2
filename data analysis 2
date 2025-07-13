@@ -1,24 +1,65 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+import re
+import nltk
+from collections import Counter
 
+
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('wordnet')
 
 
 train_data = pd.read_csv(rf"C:\Users\Asus\Desktop\train_data.csv")
-from wordcloud import WordCloud
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-import nltk
-
-nltk.download("stopwords")
-nltk.download("punkt")
 
 
+positive_reviews = train_data[train_data['overall'].isin([4, 5])]['reviewText'].str.cat(sep=' ')
+neutral_reviews = train_data[train_data['overall'] == 3]['reviewText'].str.cat(sep=' ')
+negative_reviews = train_data[train_data['overall'].isin([1, 2])]['reviewText'].str.cat(sep=' ')
 
-def preprocess_text(text):
-    text = ''.join([char.lower() for char in text if char.isalpha() or char == ' '])
-    tokens = word_tokenize(text)
-    stop_words = set(stopwords.words("english")) 
-    filtered_tokens = [word for word in tokens if word not in stop_words]
-    return " ".join(filtered_tokens)
 
-train_data["preprocess_text"] = train_data["reviewText"].apply(lambda x :preprocess_text(x))
+def preprocess_reviewText(reviewText):
+    print('-'*30 ,"preprocess_reviewText", '-'*30)
+
+    reviewText = re.sub(r'[^\w\s]', '', reviewText)
+    reviewText = re.sub(r'\d+', '', reviewText)
+    stop_words = set(stopwords.words('english'))
+    tokens = word_tokenize(reviewText.lower())
+    tokens = [word for word in tokens if word not in stop_words]
+    lemmatizer = WordNetLemmatizer()
+    tokens = [lemmatizer.lemmatize(word) for word in tokens]
+    return tokens
+
+
+def get_top_words(reviewText, n=10):
+    print('-'*30 ,"get_top_words", '-'*30)
+
+    tokens = preprocess_reviewText(reviewText)
+    word_counts = Counter(tokens)
+    return word_counts.most_common(n)
+
+
+top_positive = get_top_words(positive_reviews)
+top_neutral = get_top_words(neutral_reviews)
+top_negative = get_top_words(negative_reviews)
+
+
+def plot_bar_chart(word_counts, title):
+    print('-'*30 ,"plot_bar_chart", '-'*30)
+
+    words, counts = zip(*word_counts)
+    plt.figure(figsize=(10, 5))
+    plt.bar(words, counts, color='skyblue')
+    plt.xlabel('Words')
+    plt.ylabel('Frequency')
+    plt.title(title, fontsize=14)
+    plt.xticks(rotation=45)
+    plt.show()
+
+
+plot_bar_chart(top_positive, 'Top Words in Positive Reviews')
+plot_bar_chart(top_neutral, 'Top Words in Neutral Reviews')
+plot_bar_chart(top_negative, 'Top Words in Negative Reviews')
