@@ -1,0 +1,24 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+train_data = pd.read_csv(rf"C:\Users\Asus\Desktop\train_data.csv")
+brand_title = pd.read_csv(rf"C:\Users\Asus\Desktop\title_brand.csv")
+merge_df = pd.merge(train_data,brand_title,left_on="asin",right_on="asin", how="left")
+print(merge_df)
+
+  df = merge_df[["overall","brand"]]
+top_10_brands = merge_df['brand'].value_counts().head(10).index
+top_10_brands
+filtered = merge_df[merge_df['brand'].isin(top_10_brands)]
+mean_scores = filtered.groupby('brand')['overall'].mean().reset_index()
+
+plt.figure(figsize=(12, 6))
+
+plt.bar(
+        x=mean_scores['brand'],
+        height=mean_scores['overall'],
+        color='darkcyan')
+plt.grid(axis='y', linestyle='--', alpha=0.5)
+plt.xticks(rotation=45, ha='right')
+plt.ylim(0, 5)
+plt.tight_layout()
