@@ -5,61 +5,58 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 import re
 import nltk
+from wordcloud import WordCloud
 from collections import Counter
-
 
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
 
-
 train_data = pd.read_csv(rf"C:\Users\Asus\Desktop\train_data.csv")
-
 
 positive_reviews = train_data[train_data['overall'].isin([4, 5])]['reviewText'].str.cat(sep=' ')
 neutral_reviews = train_data[train_data['overall'] == 3]['reviewText'].str.cat(sep=' ')
 negative_reviews = train_data[train_data['overall'].isin([1, 2])]['reviewText'].str.cat(sep=' ')
 
-
-def preprocess_reviewText(reviewText):
-    print('-'*30 ,"preprocess_reviewText", '-'*30)
-
-    reviewText = re.sub(r'[^\w\s]', '', reviewText)
-    reviewText = re.sub(r'\d+', '', reviewText)
+def preprocess_text(text):
+    text = re.sub(r'[^\w\s]', '', text) 
+    text = re.sub(r'\d+', '', text)   
+    tokens = word_tokenize(text.lower()) 
     stop_words = set(stopwords.words('english'))
-    tokens = word_tokenize(reviewText.lower())
-    tokens = [word for word in tokens if word not in stop_words]
+    tokens = [word for word in tokens if word not in stop_words]  
     lemmatizer = WordNetLemmatizer()
-    tokens = [lemmatizer.lemmatize(word) for word in tokens]
+    tokens = [lemmatizer.lemmatize(word) for word in tokens]  
     return tokens
 
+positive_words = preprocess_text(positive_reviews)
+neutral_words = preprocess_text(neutral_reviews)
+negative_words = preprocess_text(negative_reviews)
 
-def get_top_words(reviewText, n=10):
-    print('-'*30 ,"get_top_words", '-'*30)
+positive_counts = Counter(positive_words)
+neutral_counts = Counter(neutral_words)
+negative_counts = Counter(negative_words)
 
-    tokens = preprocess_reviewText(reviewText)
-    word_counts = Counter(tokens)
-    return word_counts.most_common(n)
+common_words = set(positive_counts.keys()) & set(neutral_counts.keys()) & set(negative_counts.keys())
 
+positive_unique = {word: count for word, count in positive_counts.items() if word not in common_words}
+neutral_unique = {word: count for word, count in neutral_counts.items() if word not in common_words}
+negative_unique = {word: count for word, count in negative_counts.items() if word not in common_words}
 
-top_positive = get_top_words(positive_reviews)
-top_neutral = get_top_words(neutral_reviews)
-top_negative = get_top_words(negative_reviews)
-
-
-def plot_bar_chart(word_counts, title):
-    print('-'*30 ,"plot_bar_chart", '-'*30)
-
-    words, counts = zip(*word_counts)
+def generate_wordcloud(word_counts, title):
+    wordcloud = WordCloud(
+        width=800,
+        height=400,
+        background_color='white',
+        max_words=100,
+        colormap='viridis'
+    ).generate_from_frequencies(word_counts)
+    
     plt.figure(figsize=(10, 5))
-    plt.bar(words, counts, color='skyblue')
-    plt.xlabel('Words')
-    plt.ylabel('Frequency')
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis('off')
     plt.title(title, fontsize=14)
-    plt.xticks(rotation=45)
     plt.show()
 
-
-plot_bar_chart(top_positive, 'Top Words in Positive Reviews')
-plot_bar_chart(top_neutral, 'Top Words in Neutral Reviews')
-plot_bar_chart(top_negative, 'Top Words in Negative Reviews')
+generate_wordcloud(positive_unique, 'Word Cloud for Positive Reviews (Unique Words)')
+generate_wordcloud(neutral_unique, 'Word Cloud for Neutral Reviews (Unique Words)')
+generate_wordcloud(negative_unique, 'Word Cloud for Negative Reviews (Unique Words)')
